@@ -125,34 +125,44 @@ const stationMapper = data => ({
 class GeoJSONSource {
   constructor(uri, callback){
     uri.protocol = "http:"
-    getTileIndex(uri, stopQuery, stopMapper, (err, stopTileIndex) => {
-      if (err){
-        callback(err);
-        return;
-      }
-      this.stopTileIndex = stopTileIndex;
-      getTileIndex(uri, stationQuery, stationMapper, (err, stationTileIndex) => {
-        if (err){
-          callback(err);
-          return;
-        }
-        this.stationTileIndex = stationTileIndex;
-        console.log("stops loaded from:", uri.host + uri.path)
-        callback(null, this);
-      })
-    })
+    // call index creation with random delay (60 s) not to overload otp with n. mapserver instances concurrent queries
+    setTimeout(() => {
+        getTileIndex(uri, stopQuery, stopMapper, (err, stopTileIndex) => {
+          if (err){
+            callback(err);
+            return;
+          }
+          this.stopTileIndex = stopTileIndex;
+          getTileIndex(uri, stationQuery, stationMapper, (err, stationTileIndex) => {
+            if (err){
+              callback(err);
+              return;
+            }
+            this.stationTileIndex = stationTileIndex;
+            console.log("stops loaded from:", uri.host + uri.path)
+            callback(null, this);
+          })
+        })
+      }, Math.random() * 60 * 1000
+    )
   };
 
 
   getTile(z, x, y, callback){
-    let stopTile = this.stopTileIndex.getTile(z, x, y)
-    let stationTile = this.stationTileIndex.getTile(z, x, y)
+    let stopTile
+    let stationTile
 
-    if (stopTile === null){
+    // protection from early calls, when tileIndex is not yet available
+    if(this.tileIndex){
+      stopTile = this.stopTileIndex.getTile(z, x, y)
+      stationTile = this.stationTileIndex.getTile(z, x, y)
+    }
+
+    if (!this.tileIndex || stopTile === null){
       stopTile = {features: []}
     }
 
-    if (stationTile === null){
+    if (!this.tileIndex || stationTile === null){
       stationTile = {features: []}
     }
 
