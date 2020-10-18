@@ -125,7 +125,7 @@ const stationMapper = data => ({
 class GeoJSONSource {
   constructor(uri, callback){
     uri.protocol = "http:"
-    // call index creation with random delay (60 s) not to overload otp with n. mapserver instances concurrent queries
+    // call index creation with random delay  not to overload otp with n. mapserver instances concurrent queries
     setTimeout(() => {
         getTileIndex(uri, stopQuery, stopMapper, (err, stopTileIndex) => {
           if (err){
@@ -143,26 +143,20 @@ class GeoJSONSource {
             callback(null, this);
           })
         })
-      }, Math.random() * 60 * 1000
+      }, Math.random() * 20 * 1000
     )
   };
 
 
   getTile(z, x, y, callback){
-    let stopTile
-    let stationTile
+    let stopTile = this.stopTileIndex.getTile(z, x, y)
+    let stationTile = this.stationTileIndex.getTile(z, x, y)
 
-    // protection from early calls, when tileIndex is not yet available
-    if(this.tileIndex){
-      stopTile = this.stopTileIndex.getTile(z, x, y)
-      stationTile = this.stationTileIndex.getTile(z, x, y)
-    }
-
-    if (!this.tileIndex || stopTile === null){
+    if (stopTile === null){
       stopTile = {features: []}
     }
 
-    if (!this.tileIndex || stationTile === null){
+    if (stationTile === null){
       stationTile = {features: []}
     }
 
